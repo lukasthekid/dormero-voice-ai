@@ -1,0 +1,150 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Call {
+  id                String   @id @default(cuid())
+  conversationId    String   @unique
+  agentId           String
+  agentName         String?  // Agent name from ElevenLabs API
+  branchId          String?
+  userId            String?
+  
+  // Call Status
+  status            String   // "done", "in_progress", "failed"
+  terminationReason String?
+  
+  // Timestamps (stored as DateTime, converted from unix timestamps)
+  startTime         DateTime
+  acceptedTime      DateTime?
+  endTime           DateTime
+  callDurationSecs  Int
+  
+  // Transcript and Analysis
+  transcript        Json     // Full transcript array from webhook
+  transcriptSummary String?  @db.Text
+  callSummary       String?  @db.Text // Full call summary
+  callSummaryTitle  String?
+  mainLanguage      String   @default("en")
+  callSuccessful    String?  // "success", "failure", "partial"
+  messages          Int      @default(0) // Total number of messages (length of transcript)
+  
+  // Analytics - calculated from transcript
+  userTurnCount     Int      @default(0)
+  agentTurnCount    Int      @default(0)
+  totalTurnCount    Int      @default(0)
+  
+  // Cost Tracking (in cents/fractional dollars)
+  cost              Int?     // Total cost in cents
+  callCharge        Int?     // Call charge in credits/cents
+  llmCost           Float?   // LLM cost in dollars (legacy field)
+  llmPrice          Float?   // LLM price in dollars
+  
+  // Metadata
+  initiationSource         String?
+  initiationSourceVersion  String?
+  initiatorId              String?
+  timezone                 String?
+  
+  // Features used during call (for analytics)
+  featuresUsed      Json?    // Store features_usage object
+  
+  // Relations
+  feedback          Feedback[]
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@index([agentId])
+  @@index([userId])
+  @@index([startTime])
+  @@index([status])
+  @@index([callSuccessful])
+  @@index([conversationId])
+}
+
+model Feedback {
+  id              String   @id @default(cuid())
+  callId          String
+  call            Call     @relation(fields: [callId], references: [id], onDelete: Cascade)
+  
+  // Rating System
+  rating          Int      @db.SmallInt // 1-5 stars (user rating)
+  comment         String?  @db.Text
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@index([callId])
+  @@index([rating])
+  @@index([createdAt])
+}
+
+// Track agent performance metrics over time
+model AgentMetrics {
+  id                  String   @id @default(cuid())
+  agentId             String   @unique
+  
+  // Call Statistics
+  totalCalls          Int      @default(0)
+  successfulCalls     Int      @default(0)
+  failedCalls         Int      @default(0)
+  
+  // Performance Metrics
+  averageDurationSecs Float?   @db.Real
+  averageRating       Float?   @db.Real
+  averageTurns        Float?   @db.Real
+  
+  // Cost Tracking
+  totalCostCents      Int      @default(0)
+  totalLlmCost        Float    @default(0) @db.Real
+  
+  // Timestamps
+  lastCallAt          DateTime?
+  lastUpdatedAt       DateTime @updatedAt
+  
+  createdAt           DateTime @default(now())
+  
+  @@index([agentId])
+  @@index([lastCallAt])
+}
+
+// Optional: Daily analytics aggregation for faster dashboard queries
+model DailyAnalytics {
+  id                String   @id @default(cuid())
+  date              DateTime @db.Date
+  agentId           String?
+  
+  // Call volumes
+  totalCalls        Int      @default(0)
+  successfulCalls   Int      @default(0)
+  failedCalls       Int      @default(0)
+  
+  // Performance
+  avgDurationSecs   Float?   @db.Real
+  avgRating         Float?   @db.Real
+  avgTurns          Float?   @db.Real
+  
+  // Costs
+  totalCostCents    Int      @default(0)
+  totalLlmCost      Float    @default(0) @db.Real
+  
+  // Top entities (for quick insights)
+  topHotels         String[] // Most mentioned hotels that day
+  topLocations      String[] // Most mentioned locations
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@unique([date, agentId])
+  @@index([date])
+  @@index([agentId])
+}
