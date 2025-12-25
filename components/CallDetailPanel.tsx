@@ -1,14 +1,10 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import type { TranscriptMessage, CallWithFeedback } from '../types/call';
+import { isTranscriptMessage } from '../types/call';
 
-// Type definitions
-interface TranscriptMessage {
-  role: 'agent' | 'user';
-  message: string;
-  time_in_call_secs: number;
-}
-
+// Type definitions for API response
 interface Feedback {
   id: string;
   callId: string;
@@ -18,30 +14,17 @@ interface Feedback {
   updatedAt: string;
 }
 
-interface CallDetail {
-  id: string;
-  conversationId: string;
-  agentId: string;
-  agentName: string | null;
-  userId: string | null;
-  status: string;
-  terminationReason: string | null;
+// CallDetail type matching the API response structure
+// This is a serialized version of CallWithFeedback
+type CallDetail = Omit<CallWithFeedback, 'startTime' | 'acceptedTime' | 'endTime' | 'createdAt' | 'updatedAt'> & {
   startTime: string;
   acceptedTime: string | null;
   endTime: string;
-  callDurationSecs: number;
-  transcript: TranscriptMessage[] | any; // Can be JSON array
-  transcriptSummary: string | null;
-  callSummary: string | null;
-  callSummaryTitle: string | null;
-  callSuccessful: string | null;
-  messages: number;
-  callCharge: number | null;
-  llmPrice: number | null;
   createdAt: string;
   updatedAt: string;
+  transcript: TranscriptMessage[] | unknown; // Can be JSON array or parsed array
   feedback?: Feedback[];
-}
+};
 
 interface ApiResponse {
   success: boolean;
@@ -250,15 +233,26 @@ export default function CallDetailPanel({ callId, isOpen, onClose }: CallDetailP
   };
 
   // Parse transcript (handle both array and JSON string)
-  const parseTranscript = (transcript: any): TranscriptMessage[] => {
+  const parseTranscript = (transcript: unknown): TranscriptMessage[] => {
     if (!transcript) return [];
-    if (Array.isArray(transcript)) return transcript;
+    
+    // If already an array of TranscriptMessage, validate and return it
+    if (Array.isArray(transcript)) {
+      // Validate all entries are TranscriptMessage
+      return transcript.filter(isTranscriptMessage);
+    }
+    
+    // Try to parse if it's a string
     try {
       const parsed = typeof transcript === 'string' ? JSON.parse(transcript) : transcript;
-      return Array.isArray(parsed) ? parsed : [];
+      if (Array.isArray(parsed)) {
+        return parsed.filter(isTranscriptMessage);
+      }
     } catch {
-      return [];
+      // Invalid JSON, return empty array
     }
+    
+    return [];
   };
 
   if (!isOpen) return null;

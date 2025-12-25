@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../../lib/prisma';
+import { withTransaction } from '../../../../lib/prisma-transaction';
 import { getAgent } from '@/lib/evenlabs';
 import {
   mapWebhookToCallData,
 } from '../../../../lib/webhook-utils';
 import type { ElevenLabsWebhookPayload } from '../../../../types/webhook';
+import { log } from '../../../../lib/logger';
+import { handleApiError, createErrorResponse } from '../../../../lib/api-error-handler';
 
 // POST /api/webhooks/elevenlabs
 // Webhook endpoint for Elevenlabs call events
@@ -12,39 +15,44 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json() as ElevenLabsWebhookPayload;
 
+    log.debug('Received webhook', { 
+      type: body.type,
+      conversationId: body.data?.conversation_id 
+    });
+
     // Validate webhook type
     if (body.type !== 'post_call_transcription') {
-      console.warn(`Received unexpected webhook type: ${body.type}`);
-      return NextResponse.json(
-        { success: false, error: 'Unsupported webhook type' },
-        { status: 400 }
-      );
+      log.warn('Received unexpected webhook type', { 
+        type: body.type,
+        expected: 'post_call_transcription'
+      });
+      return createErrorResponse('Unsupported webhook type', 400);
     }
 
     // Validate required fields
     if (!body.data?.conversation_id) {
-      return NextResponse.json(
-        { success: false, error: 'Missing required field: conversation_id' },
-        { status: 400 }
-      );
+      log.warn('Webhook missing required field', { field: 'conversation_id' });
+      return createErrorResponse('Missing required field: conversation_id', 400);
     }
 
     if (!body.data?.agent_id) {
-      return NextResponse.json(
-        { success: false, error: 'Missing required field: agent_id' },
-        { status: 400 }
-      );
+      log.warn('Webhook missing required field', { field: 'agent_id' });
+      return createErrorResponse('Missing required field: agent_id', 400);
     }
+
+    const conversationId = body.data.conversation_id;
+    const agentId = body.data.agent_id;
 
     // Check if call already exists (idempotency)
     const existingCall = await prisma.call.findUnique({
-      where: { conversationId: body.data.conversation_id },
+      where: { conversationId },
     });
 
     if (existingCall) {
-      console.log(
-        `Call with conversation_id ${body.data.conversation_id} already exists`
-      );
+      log.info('Call already processed (idempotency)', { 
+        conversationId,
+        callId: existingCall.id 
+      });
       return NextResponse.json({
         success: true,
         message: 'Call already processed',
@@ -54,8 +62,19 @@ export async function POST(request: NextRequest) {
 
     // Fetch the AI Agent to get the agent name
     // If this fails, we'll just proceed without the agent name (we have agentId anyway)
-    const agent = await getAgent(body.data.agent_id);
-    const agentName = agent?.name || null;
+    let agentName: string | null = null;
+    try {
+      const agent = await getAgent(agentId);
+      agentName = agent?.name || null;
+      if (agentName) {
+        log.debug('Agent name fetched successfully', { agentId, agentName });
+      }
+    } catch (error) {
+      log.warn('Failed to fetch agent name, proceeding without it', { 
+        agentId,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
 
     // Map webhook payload to database models
     const { callData } = mapWebhookToCallData(body);
@@ -63,19 +82,25 @@ export async function POST(request: NextRequest) {
     // Set the agent name if we successfully fetched it
     callData.agentName = agentName;
 
-    // Use transaction to ensure data consistency
-    const result = await prisma.$transaction(async (tx) => {
+    // Use transaction to ensure data consistency with proper error handling
+    const result = await withTransaction(async (tx) => {
       // Create Call record
       const call = await tx.call.create({
         data: callData,
       });
 
       return call;
+    }, {
+      timeout: 10000, // 10 seconds timeout for webhook processing
     });
 
-    console.log(
-      `Successfully processed webhook for conversation_id: ${body.data.conversation_id}`
-    );
+    log.info('Webhook processed successfully', {
+      conversationId,
+      callId: result.id,
+      agentId,
+      agentName,
+      status: callData.status,
+    });
 
     return NextResponse.json({
       success: true,
@@ -83,38 +108,7 @@ export async function POST(request: NextRequest) {
       callId: result.id,
     });
   } catch (error) {
-    console.error('Error processing ElevenLabs webhook:', error);
-
-    // Handle Prisma errors
-    if (error instanceof Error) {
-      // Check for unique constraint violation
-      if (error.message.includes('Unique constraint')) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: 'Call with this conversation_id already exists',
-          },
-          { status: 409 }
-        );
-      }
-
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Failed to process webhook',
-          message: error.message,
-        },
-        { status: 500 }
-      );
-    }
-
-    return NextResponse.json(
-      {
-        success: false,
-        error: 'Internal server error',
-      },
-      { status: 500 }
-    );
+    return handleApiError(error, 'POST /api/webhooks/elevenlabs');
   }
 }
 

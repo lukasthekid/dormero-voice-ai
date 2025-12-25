@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../lib/prisma';
+import { log } from '../../../lib/logger';
+import { handleApiError, createErrorResponse } from '../../../lib/api-error-handler';
+import type { CallWhereInput } from '../../../types/call';
 
 // GET /api/calls
 // Endpoint to search and retrieve call logs with filtering and pagination
@@ -22,23 +25,14 @@ export async function GET(request: NextRequest) {
       const untilDate = new Date(untilDateParam);
       
       if (isNaN(fromDate.getTime()) || isNaN(untilDate.getTime())) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: 'Invalid date format. Use ISO 8601 format (e.g., 2024-01-01T00:00:00Z)',
-          },
-          { status: 400 }
+        return createErrorResponse(
+          'Invalid date format. Use ISO 8601 format (e.g., 2024-01-01T00:00:00Z)',
+          400
         );
       }
       
       if (fromDate > untilDate) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: 'fromDate must be before untilDate',
-          },
-          { status: 400 }
-        );
+        return createErrorResponse('fromDate must be before untilDate', 400);
       }
     }
     
@@ -46,7 +40,7 @@ export async function GET(request: NextRequest) {
     const state = searchParams.get('state');
     
     // Build where clause
-    const where: any = {};
+    const where: CallWhereInput = {};
     
     // Date range filtering
     if (fromDateParam || untilDateParam) {
@@ -110,14 +104,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Error fetching calls:', error);
-    return NextResponse.json(
-      {
-        success: false,
-        error: 'Failed to fetch calls',
-      },
-      { status: 500 }
-    );
+    return handleApiError(error, 'GET /api/calls');
   }
 }
 

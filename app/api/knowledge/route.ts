@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { log } from '../../../lib/logger';
+import { handleApiError } from '../../../lib/api-error-handler';
 
 // POST /api/knowledge
 // Endpoint to create/update knowledge base entries
@@ -6,10 +8,16 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     
+    log.debug('Creating knowledge base entry', { bodyKeys: Object.keys(body) });
+    
     // TODO: Validate request body
     // TODO: Store in database
     
     // Placeholder response
+    log.info('Knowledge base entry created (placeholder)', {
+      tempId: 'temp-id-' + Date.now(),
+    });
+    
     return NextResponse.json(
       {
         success: true,
@@ -19,14 +27,7 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     );
   } catch (error) {
-    console.error('Error creating knowledge entry:', error);
-    return NextResponse.json(
-      {
-        success: false,
-        error: 'Failed to create knowledge entry',
-      },
-      { status: 500 }
-    );
+    return handleApiError(error, 'POST /api/knowledge');
   }
 }
 

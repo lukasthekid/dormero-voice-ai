@@ -1,9 +1,12 @@
 import type { ElevenLabsWebhookPayload } from '../types/webhook';
+import type { TranscriptEntry } from '../types/webhook';
+import type { CallCreateInput } from '../types/call';
+import { Prisma } from '../generated/prisma/client';
 
 /**
  * Count turns in transcript by role
  */
-export function countTurns(transcript: any[]): {
+export function countTurns(transcript: TranscriptEntry[]): {
   userTurnCount: number;
   agentTurnCount: number;
   totalTurnCount: number;
@@ -43,7 +46,7 @@ export function calculateEndTime(
 export function mapWebhookToCallData(
   payload: ElevenLabsWebhookPayload
 ): {
-  callData: any;
+  callData: Omit<CallCreateInput, 'feedback'>;
 } {
   const { data } = payload;
 
@@ -80,9 +83,9 @@ export function mapWebhookToCallData(
     acceptedTime: acceptedTime,
     endTime: endTime,
     callDurationSecs: callDurationSecs,
-    transcript: transcript as any, // Store full transcript as JSON
+    transcript: transcript as unknown as Prisma.InputJsonValue,
     transcriptSummary: analysis.transcript_summary || null,
-    callSummary: analysis.transcript_summary || null, // Use transcript_summary as call_summary (call_summary field doesn't exist in webhook)
+    callSummary: analysis.transcript_summary || null, // Use transcript_summary
     callSummaryTitle: analysis.call_summary_title || null,
     mainLanguage: data.main_language || 'en',
     callSuccessful: analysis.call_successful || null,
@@ -90,17 +93,19 @@ export function mapWebhookToCallData(
     userTurnCount: userTurnCount,
     agentTurnCount: agentTurnCount,
     totalTurnCount: totalTurnCount,
-    cost: metadata.cost ? Math.round(metadata.cost) : null, // Ensure integer for cents
-    callCharge: metadata.charging?.call_charge || null, // Call charge in credits/cents
-    llmCost: metadata.charging?.llm_charge || null, // Convert llm_charge from cents to dollars (legacy field)
-    llmPrice: metadata.charging?.llm_price || null, // LLM price in dollars
+    cost: metadata.cost ? Math.round(metadata.cost) : null, 
+    callCharge: metadata.charging?.call_charge || null, 
+    llmCost: metadata.charging?.llm_charge || null, 
+    llmPrice: metadata.charging?.llm_price || null, 
     initiationSource: data.conversation_initiation_source || null,
     initiationSourceVersion: data.conversation_initiation_source_version || null,
     initiatorId: data.initiator_id || null,
     timezone: data.timezone || null,
-    featuresUsed: data.features_usage || null,
+    featuresUsed: data.features_usage 
+      ? (data.features_usage as Prisma.InputJsonValue)
+      : undefined,
   };
 
-  return { callData };
+  return { callData: callData as Omit<CallCreateInput, 'feedback'> };
 }
 

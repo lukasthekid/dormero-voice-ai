@@ -4,7 +4,10 @@ export interface TranscriptEntry {
   role: 'user' | 'agent' | 'system';
   text: string;
   timestamp?: number;
-  [key: string]: any;
+  message?: string; // Some webhooks use 'message' instead of 'text'
+  time_in_call_secs?: number; // Some webhooks include this field
+  // Allow additional properties for flexibility with webhook payloads
+  [key: string]: unknown;
 }
 
 export interface CallMetadata {
@@ -18,19 +21,23 @@ export interface CallMetadata {
   call_charge?: number; // Call charge in cents
   charging?: {
     llm_price?: number;
-    [key: string]: any;
+    llm_charge?: number;
+    call_charge?: number;
+    [key: string]: unknown;
   };
   termination_reason?: string;
   initiation_source?: string;
   main_language?: string;
-  [key: string]: any;
+  // Allow additional metadata fields
+  [key: string]: unknown;
 }
 
 export interface CallAnalysis {
   call_successful?: string; // "success", "failure", etc.
   transcript_summary?: string;
   call_summary_title?: string;
-  [key: string]: any;
+  // Allow additional analysis fields
+  [key: string]: unknown;
 }
 
 export interface PostCallTranscriptionData {
@@ -48,14 +55,16 @@ export interface PostCallTranscriptionData {
   conversation_initiation_source_version?: string;
   initiator_id?: string;
   timezone?: string;
-  features_usage?: Record<string, any>;
-  [key: string]: any;
+  features_usage?: Record<string, unknown>;
+  // Allow additional fields from webhook payload
+  [key: string]: unknown;
 }
 
 export interface ElevenLabsWebhookPayload {
   type: string;
   event_timestamp?: number;
   data: PostCallTranscriptionData;
-  [key: string]: any;
+  // Allow additional top-level fields from webhook
+  [key: string]: unknown;
 }
 
