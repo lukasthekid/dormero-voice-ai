@@ -82,30 +82,45 @@ export default function CallDetailPanel({ callId, isOpen, onClose }: CallDetailP
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/50 z-40 transition-opacity duration-300"
+        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 transition-opacity duration-300 ease-out"
         onClick={onClose}
+        aria-hidden="true"
       />
 
       {/* Panel */}
       <div
-        className={`fixed right-0 top-0 h-full w-2/3 bg-white shadow-xl z-50 transform transition-transform duration-300 ease-in-out ${
+        className={`fixed right-0 top-0 h-full w-2/3 bg-white shadow-2xl z-50 transform transition-transform duration-300 ease-out ${
           isOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
         <div className="flex h-full flex-col">
           {/* Header */}
-          <div className="flex-shrink-0 border-b border-slate-200 px-6 py-4">
+          <div className="flex-shrink-0 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-white px-6 py-5">
             <div className="flex items-center justify-between">
-              <h2 className="text-xl font-semibold text-slate-900">
-                {loading
-                  ? 'Loading...'
-                  : call
-                  ? `Conversation with ${call.agentName || 'Unknown Agent'}`
-                  : 'Call Details'}
-              </h2>
+              <div className="flex-1 min-w-0">
+                <h2 className="text-xl font-bold text-slate-900 truncate">
+                  {loading
+                    ? 'Loading...'
+                    : call
+                    ? `Conversation with ${call.agentName || 'Unknown Agent'}`
+                    : 'Call Details'}
+                </h2>
+                {call && (
+                  <p className="mt-1 text-sm text-slate-600 truncate">
+                    {new Date(call.startTime).toLocaleDateString('en-US', {
+                      weekday: 'long',
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  </p>
+                )}
+              </div>
               <button
                 onClick={onClose}
-                className="rounded-md p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
+                className="ml-4 flex-shrink-0 rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700 active:bg-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-all duration-200"
                 aria-label="Close panel"
               >
                 <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -121,31 +136,37 @@ export default function CallDetailPanel({ callId, isOpen, onClose }: CallDetailP
           </div>
 
           {/* Tabs */}
-          <div className="flex-shrink-0 border-b border-slate-200">
-            <div className="flex px-6">
+          <div className="flex-shrink-0 border-b border-slate-200 bg-white">
+            <div className="flex px-6 gap-1">
               <button
                 onClick={() => setActiveTab('overview')}
-                className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                className={`px-5 py-3.5 text-sm font-semibold border-b-2 transition-all duration-200 relative ${
                   activeTab === 'overview'
                     ? 'border-indigo-600 text-indigo-600'
                     : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
                 }`}
               >
                 Overview
+                {activeTab === 'overview' && (
+                  <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600"></span>
+                )}
               </button>
               <button
                 onClick={() => setActiveTab('transcription')}
-                className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                className={`px-5 py-3.5 text-sm font-semibold border-b-2 transition-all duration-200 relative ${
                   activeTab === 'transcription'
                     ? 'border-indigo-600 text-indigo-600'
                     : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
                 }`}
               >
                 Transcription
+                {activeTab === 'transcription' && (
+                  <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600"></span>
+                )}
               </button>
               <button
                 onClick={() => setActiveTab('ratings')}
-                className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                className={`px-5 py-3.5 text-sm font-semibold border-b-2 transition-all duration-200 relative ${
                   activeTab === 'ratings'
                     ? 'border-indigo-600 text-indigo-600'
                     : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
@@ -153,7 +174,12 @@ export default function CallDetailPanel({ callId, isOpen, onClose }: CallDetailP
               >
                 Ratings
                 {call?.feedback && call.feedback.length > 0 && (
-                  <span className="ml-1.5 text-xs">({call.feedback.length})</span>
+                  <span className="ml-1.5 inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-bold text-white bg-indigo-600 rounded-full min-w-[1.25rem]">
+                    {call.feedback.length}
+                  </span>
+                )}
+                {activeTab === 'ratings' && (
+                  <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600"></span>
                 )}
               </button>
             </div>
@@ -165,16 +191,19 @@ export default function CallDetailPanel({ callId, isOpen, onClose }: CallDetailP
             <div className="flex-1 overflow-y-auto min-w-0">
               {loading ? (
                 <div className="flex items-center justify-center h-full">
-                  <div className="flex flex-col items-center gap-3">
-                    <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
-                    <p className="text-sm text-slate-600">Loading call details...</p>
+                  <div className="flex flex-col items-center gap-4">
+                    <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                    <div className="text-center">
+                      <p className="text-sm font-semibold text-slate-900">Loading call details...</p>
+                      <p className="text-xs text-slate-500 mt-1">Please wait</p>
+                    </div>
                   </div>
                 </div>
               ) : error ? (
                 <div className="flex items-center justify-center h-full px-6">
-                  <div className="text-center">
-                    <div className="text-red-600 mb-2">
-                      <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="text-center max-w-md">
+                    <div className="text-red-600 mb-4">
+                      <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path
                           strokeLinecap="round"
                           strokeLinejoin="round"
@@ -183,11 +212,11 @@ export default function CallDetailPanel({ callId, isOpen, onClose }: CallDetailP
                         />
                       </svg>
                     </div>
-                    <p className="text-sm font-medium text-slate-900 mb-1">Error loading call details</p>
-                    <p className="text-sm text-slate-600 mb-4">{error}</p>
+                    <p className="text-base font-semibold text-slate-900 mb-2">Error loading call details</p>
+                    <p className="text-sm text-slate-600 mb-6">{error}</p>
                     <button
                       onClick={fetchCallDetails}
-                      className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 transition-colors"
+                      className="px-5 py-2.5 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 active:bg-indigo-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-all duration-200 shadow-sm hover:shadow"
                     >
                       Try Again
                     </button>

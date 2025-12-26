@@ -1,4 +1,4 @@
-import type { CallWithFeedback } from '../types/call';
+import type { CallWithFeedback } from '../../types/call';
 import type { Prisma } from '../../generated/prisma/client';
 
 /**
