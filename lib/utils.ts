@@ -1,5 +1,5 @@
 /**
- * Utility functions for dashboard
+ * Utility functions for control center
  */
 
 export function formatDuration(seconds: number): string {

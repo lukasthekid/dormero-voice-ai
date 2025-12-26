@@ -28,10 +28,7 @@ app/
 │   ├── call/[id]/          # GET /api/call/:id
 │   └── webhooks/
 │       └── elevenlabs/     # POST /api/webhooks/elevenlabs
-├── dashboard/              # Dashboard pages
-│   ├── page.tsx           # Call history dashboard
-│   └── call/[id]/         # Individual call details
-├── page.tsx               # Homepage
+├── page.tsx               # Control Center (call history)
 └── layout.tsx             # Root layout
 
 types/
@@ -114,9 +111,9 @@ This endpoint accepts various event types:
 
 **Note:** This endpoint always returns `200 OK` to acknowledge receipt.
 
-## Dashboard
+## Control Center
 
-Access the dashboard at `/dashboard` to view:
+Access the Control Center at the root path `/` to view:
 - Call history with filtering and pagination
 - Individual call details including transcripts
 - Call analytics and metadata

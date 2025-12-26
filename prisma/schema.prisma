@@ -117,7 +117,7 @@ model AgentMetrics {
   @@index([lastCallAt])
 }
 
-// Optional: Daily analytics aggregation for faster dashboard queries
+// Optional: Daily analytics aggregation for faster control center queries
 model DailyAnalytics {
   id                String   @id @default(cuid())
   date              DateTime @db.Date
