@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '../../../../lib/prisma';
 import { withTransaction } from '../../../../lib/prisma-transaction';
-import { getAgent } from '@/lib/evenlabs';
+import { getAgent } from '@/lib/elevenlabs';
 import {
   mapWebhookToCallData,
 } from '../../../../lib/webhook-utils';
 import type { ElevenLabsWebhookPayload } from '../../../../types/webhook';
 import { log } from '../../../../lib/logger';
 import { handleApiError, createErrorResponse } from '../../../../lib/api-error-handler';
+import { CallService } from '../../../../lib/services/call.service';
 import "dotenv/config";
 import crypto from "crypto";
 
@@ -53,9 +53,7 @@ export async function POST(request: NextRequest) {
     const agentId = body.data.agent_id;
 
     // Check if call already exists (idempotency)
-    const existingCall = await prisma.call.findUnique({
-      where: { conversationId },
-    });
+    const existingCall = await CallService.getCallByConversationId(conversationId);
 
     if (existingCall) {
       log.info('Call already processed (idempotency)', {
@@ -93,12 +91,8 @@ export async function POST(request: NextRequest) {
 
     // Use transaction to ensure data consistency with proper error handling
     const result = await withTransaction(async (tx) => {
-      // Create Call record
-      const call = await tx.call.create({
-        data: callData,
-      });
-
-      return call;
+      // Create Call record using service method
+      return await CallService.createCallInTransaction(tx, callData);
     }, {
       timeout: 10000, // 10 seconds timeout for webhook processing
     });

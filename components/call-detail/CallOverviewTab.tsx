@@ -1,6 +1,6 @@
 import type { CallDetail } from './types';
 import { calculateAverageRating } from './utils';
-import StatusBadge from './StatusBadge';
+import StatusBadge from '../StatusBadge';
 import StarRating from './StarRating';
 
 interface CallOverviewTabProps {

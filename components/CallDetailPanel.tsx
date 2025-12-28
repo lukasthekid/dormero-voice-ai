@@ -1,11 +1,12 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import type { CallDetail, ApiResponse } from './call-detail/types';
+import type { CallDetail } from './call-detail/types';
 import CallOverviewTab from './call-detail/CallOverviewTab';
 import CallTranscriptionTab from './call-detail/CallTranscriptionTab';
 import CallRatingsTab from './call-detail/CallRatingsTab';
 import CallMetadataSidebar from './call-detail/CallMetadataSidebar';
+import { api } from '@/lib/api-client';
 
 interface CallDetailPanelProps {
   callId: string | null;
@@ -27,14 +28,8 @@ export default function CallDetailPanel({ callId, isOpen, onClose }: CallDetailP
     setError(null);
 
     try {
-      const response = await fetch(`/api/call/${callId}`);
-      const data: ApiResponse = await response.json();
-
-      if (!response.ok || !data.success) {
-        throw new Error(data.error || 'Failed to fetch call details');
-      }
-
-      setCall(data.call);
+      const data = await api.getCall(callId);
+      setCall(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unexpected error occurred');
       setCall(null);

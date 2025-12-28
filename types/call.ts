@@ -1,5 +1,57 @@
 import type { Prisma } from '../generated/prisma/client';
-import type { TranscriptEntry } from './webhook';
+
+/**
+ * Filters for listing calls
+ */
+export interface CallFilters {
+  fromDate?: string | null;
+  untilDate?: string | null;
+  status?: string | null;
+  agentId?: string | null;
+  userId?: string | null;
+}
+
+/**
+ * Pagination parameters
+ */
+export interface PaginationParams {
+  page?: number;
+  pageSize?: number;
+}
+
+/**
+ * Validated pagination parameters
+ */
+export interface ValidatedPagination {
+  page: number;
+  pageSize: number;
+  skip: number;
+}
+
+/**
+ * Date validation result
+ */
+export interface DateValidationResult {
+  valid: boolean;
+  error?: string;
+  fromDate?: Date;
+  untilDate?: Date;
+}
+
+/**
+ * Result of listing calls
+ */
+export interface CallListResult {
+  calls: CallListItem[];
+  pagination: {
+    page: number;
+    pageSize: number;
+    totalItems: number;
+    totalPages: number;
+    hasNext: boolean;
+    hasPrevious: boolean;
+  };
+}
 
 /**
  * Transcript message type for display in UI

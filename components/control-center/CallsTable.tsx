@@ -1,6 +1,6 @@
 import { Call, Pagination } from './types';
 import { formatDuration, formatDateTime } from './utils';
-import StatusBadge from './StatusBadge';
+import StatusBadge from '../StatusBadge';
 
 interface CallsTableProps {
   calls: Call[];

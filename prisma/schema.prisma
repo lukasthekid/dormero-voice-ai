@@ -10,6 +10,12 @@ datasource db {
   provider = "postgresql"
 }
 
+enum CallSuccessful {
+  success
+  failure
+  unknown
+}
+
 model Call {
   id                String   @id @default(cuid())
   conversationId    String   @unique
@@ -34,7 +40,7 @@ model Call {
   callSummary       String?  @db.Text // Full call summary
   callSummaryTitle  String?
   mainLanguage      String   @default("en")
-  callSuccessful    String?  // "success", "failure", "partial"
+  callSuccessful    CallSuccessful?
   messages          Int      @default(0) // Total number of messages (length of transcript)
   
   // Analytics - calculated from transcript
@@ -69,6 +75,9 @@ model Call {
   @@index([status])
   @@index([callSuccessful])
   @@index([conversationId])
+  // Composite indexes for common query patterns
+  @@index([agentId, startTime]) // Optimize queries filtering by agent and date range
+  @@index([status, startTime])  // Optimize queries filtering by status and date range
 }
 
 model Feedback {

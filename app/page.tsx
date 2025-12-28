@@ -5,8 +5,9 @@ import CallDetailPanel from '../components/CallDetailPanel';
 import KPICards from '../components/control-center/KPICards';
 import DateFilters from '../components/control-center/DateFilters';
 import CallsTable from '../components/control-center/CallsTable';
-import { Call, Pagination, ApiResponse, KPIResponse, DatePreset } from '../components/control-center/types';
+import { Call, Pagination, KPIResponse, DatePreset } from '../components/control-center/types';
 import { getDateRange } from '../components/control-center/utils';
+import { api } from '../lib/api-client';
 
 export default function ControlCenterPage() {
   const [calls, setCalls] = useState<Call[]>([]);
@@ -46,18 +47,7 @@ export default function ControlCenterPage() {
     
     setKpisLoading(true);
     try {
-      const params = new URLSearchParams({
-        fromDate,
-        untilDate,
-      });
-      
-      const response = await fetch(`/api/kpis?${params.toString()}`);
-      const data: KPIResponse = await response.json();
-      
-      if (!response.ok || !data.success) {
-        throw new Error(data.error || 'Failed to fetch KPIs');
-      }
-      
+      const data = await api.getKPIs(fromDate, untilDate);
       setKpis(data);
     } catch (err) {
       console.error('Failed to fetch KPIs:', err);
@@ -74,24 +64,10 @@ export default function ControlCenterPage() {
     
     try {
       const { fromDate, untilDate } = calculateDateRange();
-      const params = new URLSearchParams({
-        page: currentPage.toString(),
-        pageSize: pageSize.toString(),
-      });
-      
-      if (fromDate) {
-        params.append('fromDate', fromDate);
-      }
-      if (untilDate) {
-        params.append('untilDate', untilDate);
-      }
-      
-      const response = await fetch(`/api/calls?${params.toString()}`);
-      const data: ApiResponse = await response.json();
-      
-      if (!response.ok || !data.success) {
-        throw new Error(data.error || 'Failed to fetch calls');
-      }
+      const data = await api.getCalls(
+        { fromDate, untilDate },
+        { page: currentPage, pageSize }
+      );
       
       setCalls(data.calls);
       setPagination(data.pagination);

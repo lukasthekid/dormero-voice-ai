@@ -1,5 +1,5 @@
 import type { CallWithFeedback } from '../../types/call';
-import type { Prisma } from '../../generated/prisma/client';
+import type { CallSuccessful, Prisma } from '../../generated/prisma/client';
 
 /**
  * Extended transcript entry type with all metadata from webhook
@@ -74,6 +74,7 @@ export type CallDetail = Omit<CallWithFeedback, 'startTime' | 'acceptedTime' | '
   endTime: string;
   createdAt: string;
   updatedAt: string;
+  callSuccessful: CallSuccessful;
   transcript: unknown; // Can be JSON array or parsed array
   feedback?: Feedback[];
 };

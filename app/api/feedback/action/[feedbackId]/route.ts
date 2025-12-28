@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '../../../../../lib/prisma';
-import { log } from '../../../../../lib/logger';
 import { handleApiError, createErrorResponse } from '../../../../../lib/api-error-handler';
+import { FeedbackService } from '../../../../../lib/services/feedback.service';
 
 // DELETE /api/feedback/action/{feedbackId}
 // Endpoint to delete a feedback/rating
@@ -12,33 +11,20 @@ export async function DELETE(
   try {
     const { feedbackId } = await params;
 
-    log.debug('Deleting feedback', { feedbackId });
-
-    // Check if feedback exists
-    const feedback = await prisma.feedback.findUnique({
-      where: { id: feedbackId },
-    });
-
-    if (!feedback) {
-      log.warn('Feedback not found', { feedbackId });
-      return createErrorResponse('Feedback not found', 404);
-    }
-
-    // Delete the feedback
-    await prisma.feedback.delete({
-      where: { id: feedbackId },
-    });
-
-    log.info('Feedback deleted successfully', { 
-      feedbackId,
-      callId: feedback.callId,
-    });
+    // Delete feedback using service
+    // Service handles existence check and deletion
+    await FeedbackService.deleteFeedback(feedbackId);
 
     return NextResponse.json({
       success: true,
       message: 'Feedback deleted successfully',
     });
   } catch (error) {
+    // Handle "Feedback not found" error specifically
+    if (error instanceof Error && error.message === 'Feedback not found') {
+      return createErrorResponse('Feedback not found', 404);
+    }
+    // Handle other errors
     return handleApiError(error, 'DELETE /api/feedback/action/[feedbackId]');
   }
 }

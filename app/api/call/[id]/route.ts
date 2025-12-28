@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '../../../../lib/prisma';
-import { log } from '../../../../lib/logger';
 import { handleApiError, createErrorResponse } from '../../../../lib/api-error-handler';
+import { CallService } from '../../../../lib/services/call.service';
 
 // GET /api/call/[id]
 // Endpoint to retrieve a specific call by ID
@@ -12,26 +11,12 @@ export async function GET(
   try {
     const { id } = await params;
     
-    log.debug('Fetching call', { callId: id });
-    
-    // Fetch call from database
-    const call = await prisma.call.findUnique({
-      where: { id },
-      include: {
-        feedback: {
-          orderBy: {
-            createdAt: 'desc',
-          },
-        },
-      },
-    });
+    // Fetch call using service
+    const call = await CallService.getCallById(id);
     
     if (!call) {
-      log.warn('Call not found', { callId: id });
       return createErrorResponse('Call not found', 404);
     }
-    
-    log.info('Call fetched successfully', { callId: id });
     
     return NextResponse.json({
       success: true,

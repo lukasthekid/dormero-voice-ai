@@ -1,3 +1,5 @@
+import { CallSuccessful } from "@/generated/prisma/enums";
+
 export interface Call {
   id: string;
   conversationId: string;
@@ -8,7 +10,7 @@ export interface Call {
   endTime: string;
   callDurationSecs: number;
   callSummaryTitle: string | null;
-  callSuccessful: string | null;
+  callSuccessful: CallSuccessful;
   messages: number;
   createdAt: string;
   updatedAt: string;

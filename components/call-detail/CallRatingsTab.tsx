@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import type { CallDetail, Feedback } from './types';
 import { calculateAverageRating } from './utils';
 import StarRating from './StarRating';
+import { api } from '@/lib/api-client';
 
 interface CallRatingsTabProps {
   call: CallDetail;
@@ -44,22 +45,10 @@ export default function CallRatingsTab({ call, callId, onRatingSubmitted }: Call
     setShowSuccess(false);
 
     try {
-      const response = await fetch(`/api/feedback/${callId}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          rating,
-          comment: comment.trim(),
-        }),
+      await api.createFeedback(callId, {
+        rating,
+        comment: comment.trim(),
       });
-
-      const data = await response.json();
-
-      if (!response.ok || !data.success) {
-        throw new Error(data.error || 'Failed to submit rating');
-      }
 
       // Show success feedback
       setShowSuccess(true);
@@ -87,15 +76,7 @@ export default function CallRatingsTab({ call, callId, onRatingSubmitted }: Call
     setDeleteError(null);
 
     try {
-      const response = await fetch(`/api/feedback/action/${feedbackId}`, {
-        method: 'DELETE',
-      });
-
-      const data = await response.json();
-
-      if (!response.ok || !data.success) {
-        throw new Error(data.error || 'Failed to delete rating');
-      }
+      await api.deleteFeedback(feedbackId);
 
       // Refresh call details to get updated feedback
       onRatingSubmitted();
