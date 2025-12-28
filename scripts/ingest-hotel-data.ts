@@ -45,56 +45,6 @@ function extractCategory(url: string, baseUrl: string): string {
     }
 }
 
-// Check if URL should be excluded from crawling
-function shouldExcludeUrl(url: string, baseUrl: string): boolean {
-    try {
-        const urlObj = new URL(url);
-        const pathname = urlObj.pathname;
-        
-        // Extract the base path segment (e.g., "hotel-wien")
-        const basePathSegment = extractBasePathSegment(baseUrl);
-        if (!basePathSegment) return true;
-        
-        // Exclude URLs that are NOT under the specific hotel path
-        // E.g., if base is hotel-wien, exclude hotel-budapest, hotel-graz, etc.
-        const urlPath = pathname.replace(/^\/+|\/+$/g, '');
-        const urlSegments = urlPath.split('/').filter(Boolean);
-        
-        // If the base path segment is not in the URL, exclude it
-        if (!urlSegments.includes(basePathSegment)) {
-            return true;
-        }
-        
-        // Exclude common non-content patterns
-        const excludePatterns = [
-            '/impressum',
-            '/datenschutz',
-            '/agb',
-            '/kontakt',
-            '/buchung',
-            '/booking',
-            '/buchen',
-            '/reservierung',
-            '#',
-            'mailto:',
-            'tel:',
-            '.pdf',
-            '.jpg',
-            '.png',
-            '.jpeg',
-            '.gif',
-            'javascript:',
-        ];
-        
-        return excludePatterns.some(pattern => 
-            pathname.toLowerCase().includes(pattern.toLowerCase()) || 
-            url.toLowerCase().includes(pattern.toLowerCase())
-        );
-    } catch (error) {
-        return true; // Exclude invalid URLs
-    }
-}
-
 // Extract base path segment (e.g., "hotel-wien" from "/hotel-wien" or "/hotel-wien/")
 function extractBasePathSegment(baseUrl: string): string | null {
     try {
@@ -105,31 +55,6 @@ function extractBasePathSegment(baseUrl: string): string | null {
         return segments[0] || null;
     } catch (error) {
         return null;
-    }
-}
-
-// Check if URL is under base URL
-function isUnderBaseUrl(url: string, baseUrl: string): boolean {
-    try {
-        const urlObj = new URL(url);
-        const baseObj = new URL(baseUrl);
-        
-        // Must be same domain
-        if (urlObj.hostname !== baseObj.hostname) return false;
-        
-        // Extract the base path segment (e.g., "hotel-wien")
-        const basePathSegment = extractBasePathSegment(baseUrl);
-        if (!basePathSegment) return false;
-        
-        // Normalize pathname: remove leading/trailing slashes and split
-        const urlPath = urlObj.pathname.replace(/^\/+|\/+$/g, '');
-        const urlSegments = urlPath.split('/').filter(Boolean);
-        
-        // Check if the base path segment is included in the URL path
-        // This ensures we only crawl URLs that contain "hotel-wien" in their path
-        return urlSegments.includes(basePathSegment);
-    } catch (error) {
-        return false;
     }
 }
 
@@ -150,6 +75,43 @@ function normalizeUrl(url: string): string {
         return urlObj.toString();
     } catch (error) {
         return url;
+    }
+}
+
+// Check if a URL is under the base URL path (same origin and path starts with base path)
+function isUrlUnderBaseUrl(url: string, baseUrl: string): boolean {
+    try {
+        const urlObj = new URL(url);
+        const baseObj = new URL(baseUrl);
+        
+        // Must have same origin (protocol, hostname, port)
+        if (urlObj.origin !== baseObj.origin) {
+            return false;
+        }
+        
+        // Normalize base pathname (ensure it starts with / and doesn't end with /)
+        let basePathname = baseObj.pathname;
+        if (!basePathname.startsWith('/')) {
+            basePathname = '/' + basePathname;
+        }
+        if (basePathname.endsWith('/') && basePathname.length > 1) {
+            basePathname = basePathname.slice(0, -1);
+        }
+        
+        // Normalize URL pathname
+        let urlPathname = urlObj.pathname;
+        if (!urlPathname.startsWith('/')) {
+            urlPathname = '/' + urlPathname;
+        }
+        if (urlPathname.endsWith('/') && urlPathname.length > 1) {
+            urlPathname = urlPathname.slice(0, -1);
+        }
+        
+        // Check if URL pathname starts with base pathname
+        // Also allow the exact base pathname (with or without trailing slash handled)
+        return urlPathname === basePathname || urlPathname.startsWith(basePathname + '/');
+    } catch (error) {
+        return false;
     }
 }
 
@@ -178,13 +140,11 @@ function extractLinks($: cheerio.CheerioAPI, currentUrl: string, baseUrl: string
             }
             
             // Convert relative URLs to absolute
-            const absoluteUrl = new URL(href, currentUrl).toString();
+            const absoluteUrl = new URL(href, baseUrl).toString();
             const normalized = normalizeUrl(absoluteUrl);
             
-            // Apply all filters
-            if (!visitedUrls.has(normalized) && 
-                isUnderBaseUrl(normalized, baseUrl) &&
-                !shouldExcludeUrl(normalized, baseUrl)) {
+            // Apply all filters: must be unvisited and under base URL path
+            if (!visitedUrls.has(normalized) && isUrlUnderBaseUrl(normalized, baseUrl)){
                 links.push(normalized);
             }
         } catch (error) {
@@ -202,12 +162,6 @@ function extractLinks($: cheerio.CheerioAPI, currentUrl: string, baseUrl: string
     return uniqueLinks;
 }
 
-// Validate chunk quality
-function isValidChunk(text: string): boolean {
-    const words = text.split(/\s+/).filter(w => w.length > 0);
-    return words.length >= 10 && text.length >= 50;
-}
-
 async function scrapeAndChunk(
     url: string,
     baseUrl: string,
@@ -218,6 +172,12 @@ async function scrapeAndChunk(
 ): Promise<string[]> {
     
     const normalizedUrl = normalizeUrl(url);
+    
+    // Safety check: ensure URL is under base URL path
+    if (!isUrlUnderBaseUrl(normalizedUrl, baseUrl)) {
+        console.log(`${'  '.repeat(currentDepth)}🚫 Skipping URL outside base path: ${normalizedUrl}`);
+        return [];
+    }
     
     // Check if already visited
     if (visitedUrls.has(normalizedUrl)) {
@@ -286,8 +246,8 @@ async function scrapeAndChunk(
         
         // 7. Chunk content
         const splitter = new RecursiveCharacterTextSplitter({
-            chunkSize: 600,
-            chunkOverlap: 100,
+            chunkSize: 800,
+            chunkOverlap: 200,
             separators: ["\n\n", "\n", ". ", "! ", "? ", "; ", ", ", " "]
         });
         
@@ -391,7 +351,14 @@ async function main() {
             'https://www.dormero.de/hotel-wien',
             'Dormero Hotel Vienna',
             'Vienna',
-            2  // Depth 2 should be enough for most hotels
+            3  // Depth 2 should be enough for most hotels
+        );
+
+        await crawlWebsite(
+            'https://www.dormero.de/hotel-stuttgart',
+            'Dormero Hotel Stuttgart',
+            'Stuttgart',
+            3  // Depth 2 should be enough for most hotels
         );
         
         const duration = ((Date.now() - startTime) / 1000).toFixed(2);
@@ -410,5 +377,5 @@ async function main() {
     }
 }
 
-//main();
+main();
 //clearDatabase()
