@@ -3,6 +3,10 @@ import { handleApiError, createErrorResponse } from '../../../lib/api-error-hand
 import { KnowledgeService } from '../../../lib/services/knowledge.service';
 import type { KnowledgeRequest } from '@/types/knowledge';
 
+// Route segment config
+// Search queries should execute dynamically for real-time results
+export const dynamic = 'force-dynamic';
+
 // POST /api/knowledge
 // Endpoint to search the knowledge base using semantic search
 export async function POST(request: NextRequest) {

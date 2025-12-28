@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { handleApiError, createErrorResponse } from '../../../../lib/api-error-handler';
 import { CallService } from '../../../../lib/services/call.service';
 
+// Route segment config
+export const revalidate = 60;
+
 // GET /api/call/[id]
 // Endpoint to retrieve a specific call by ID
 export async function GET(

@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { handleApiError, createErrorResponse } from '../../../../../lib/api-error-handler';
 import { FeedbackService } from '../../../../../lib/services/feedback.service';
 
+// Route segment config
+// Mutations should always execute dynamically
+export const dynamic = 'force-dynamic';
+
 // DELETE /api/feedback/action/{feedbackId}
 // Endpoint to delete a feedback/rating
 export async function DELETE(

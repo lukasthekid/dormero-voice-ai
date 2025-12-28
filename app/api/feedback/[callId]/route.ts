@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { handleApiError, createErrorResponse } from '../../../../lib/api-error-handler';
 import { FeedbackService } from '../../../../lib/services/feedback.service';
 
+// Route segment config
+// Mutations should always execute dynamically
+export const dynamic = 'force-dynamic';
+
 // POST /api/feedback/{callId}
 // Endpoint to create feedback/rating for a call
 export async function POST(

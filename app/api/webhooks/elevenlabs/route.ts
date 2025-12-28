@@ -11,6 +11,13 @@ import { CallService } from '../../../../lib/services/call.service';
 import "dotenv/config";
 import crypto from "crypto";
 
+// Route segment config
+// Required for crypto operations (Node.js API)
+export const runtime = 'nodejs';
+// Webhooks should never be cached
+export const dynamic = 'force-dynamic';
+// Allow longer execution time for webhook processing
+export const maxDuration = 30;
 
 // POST /api/webhooks/elevenlabs
 // Webhook endpoint for Elevenlabs call events
@@ -129,7 +136,7 @@ export async function GET() {
 const constructWebhookEvent = async (req: NextRequest, secret?: string) => {
   const body = await req.text();
   const signature_header = req.headers.get("ElevenLabs-Signature");
-  console.log(signature_header);
+  log.debug('Webhook signature header received', { hasSignature: !!signature_header });
   if (!signature_header) {
     return { event: null, error: "Missing signature header" };
   }

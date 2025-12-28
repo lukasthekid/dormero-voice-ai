@@ -3,6 +3,9 @@ import { handleApiError, createErrorResponse } from '../../../lib/api-error-hand
 import { KPIService } from '../../../lib/services/kpi.service';
 import type { KPIResponse } from '@/types/kpi';
 
+// Route segment config
+export const revalidate = 10;
+
 // GET /api/kpis?fromDate=...&untilDate=...
 // Endpoint to retrieve KPIs for calls within a date range
 export async function GET(request: NextRequest) {

@@ -3,6 +3,9 @@ import { handleApiError, createErrorResponse } from '../../../lib/api-error-hand
 import { CallService } from '../../../lib/services/call.service';
 import { CallSuccessful } from '../../../generated/prisma/enums';
 
+// Route segment config
+export const revalidate = 10;
+
 // GET /api/calls
 // Endpoint to search and retrieve call logs with filtering and pagination
 export async function GET(request: NextRequest) {
