@@ -8,6 +8,7 @@ import CallsTable from '../components/control-center/CallsTable';
 import { Call, Pagination, KPIResponse, DatePreset } from '../components/control-center/types';
 import { getDateRange } from '../components/control-center/utils';
 import { api } from '../lib/api-client';
+import { CallSuccessful } from '../generated/prisma/enums';
 
 export default function ControlCenterPage() {
   const [calls, setCalls] = useState<Call[]>([]);
@@ -23,6 +24,7 @@ export default function ControlCenterPage() {
   const [datePreset, setDatePreset] = useState<DatePreset>('last30days');
   const [customFromDate, setCustomFromDate] = useState<string>('');
   const [customUntilDate, setCustomUntilDate] = useState<string>('');
+  const [callSuccessful, setCallSuccessful] = useState<CallSuccessful | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(5);
 
@@ -65,7 +67,7 @@ export default function ControlCenterPage() {
     try {
       const { fromDate, untilDate } = calculateDateRange();
       const data = await api.getCalls(
-        { fromDate, untilDate },
+        { fromDate, untilDate, callSuccessful },
         { page: currentPage, pageSize }
       );
       
@@ -78,7 +80,7 @@ export default function ControlCenterPage() {
     } finally {
       setLoading(false);
     }
-  }, [calculateDateRange, currentPage, pageSize]);
+  }, [calculateDateRange, callSuccessful, currentPage, pageSize]);
 
   // Fetch calls and KPIs when filters or page change
   useEffect(() => {
@@ -89,6 +91,12 @@ export default function ControlCenterPage() {
   // Handle preset change
   const handlePresetChange = (preset: DatePreset) => {
     setDatePreset(preset);
+    setCurrentPage(1); // Reset to first page when filter changes
+  };
+
+  // Handle call successful filter change
+  const handleCallSuccessfulChange = (value: CallSuccessful | null) => {
+    setCallSuccessful(value);
     setCurrentPage(1); // Reset to first page when filter changes
   };
 
@@ -123,7 +131,7 @@ export default function ControlCenterPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8 transition-all duration-500 ease-out">
-          <h1 className="text-4xl font-bold text-slate-900 tracking-tight">Control Center</h1>
+          <h1 className="text-4xl font-extrabold text-slate-900 tracking-tight">Control Center</h1>
           <p className="mt-3 text-base text-slate-700 font-medium">
             View and manage your call logs
           </p>
@@ -152,12 +160,15 @@ export default function ControlCenterPage() {
             datePreset={datePreset}
             customFromDate={customFromDate}
             customUntilDate={customUntilDate}
+            callSuccessful={callSuccessful}
             onPresetChange={handlePresetChange}
             onCustomDateChange={handleCustomDateChange}
+            onCallSuccessfulChange={handleCallSuccessfulChange}
             onClearFilters={() => {
               setDatePreset('last30days');
               setCustomFromDate('');
               setCustomUntilDate('');
+              setCallSuccessful(null);
               setCurrentPage(1);
             }}
           />

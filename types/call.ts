@@ -1,4 +1,5 @@
 import type { Prisma } from '../generated/prisma/client';
+import type { CallSuccessful } from '../generated/prisma/enums';
 
 /**
  * Filters for listing calls
@@ -6,7 +7,7 @@ import type { Prisma } from '../generated/prisma/client';
 export interface CallFilters {
   fromDate?: string | null;
   untilDate?: string | null;
-  status?: string | null;
+  callSuccessful?: CallSuccessful | null;
   agentId?: string | null;
   userId?: string | null;
 }

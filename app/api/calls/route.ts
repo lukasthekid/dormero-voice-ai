@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { handleApiError, createErrorResponse } from '../../../lib/api-error-handler';
 import { CallService } from '../../../lib/services/call.service';
+import { CallSuccessful } from '../../../generated/prisma/enums';
 
 // GET /api/calls
 // Endpoint to search and retrieve call logs with filtering and pagination
@@ -12,7 +13,7 @@ export async function GET(request: NextRequest) {
     const filters = {
       fromDate: searchParams.get('fromDate'),
       untilDate: searchParams.get('untilDate'),
-      status: searchParams.get('state'), // Map 'state' query param to 'status' filter
+      callSuccessful: searchParams.get('callSuccessful') as CallSuccessful | null,
       agentId: searchParams.get('agentId'),
       userId: searchParams.get('userId'),
     };

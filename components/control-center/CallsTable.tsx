@@ -1,6 +1,7 @@
 import { Call, Pagination } from './types';
 import { formatDuration, formatDateTime } from './utils';
 import StatusBadge from '../StatusBadge';
+import { CallSuccessful } from '@/generated/prisma/enums';
 
 interface CallsTableProps {
   calls: Call[];
@@ -25,7 +26,7 @@ export default function CallsTable({
 }: CallsTableProps) {
   if (loading) {
     return (
-      <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
+      <div className="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
         <div className="flex items-center justify-center py-16">
           <div className="flex flex-col items-center gap-4">
             <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
@@ -41,7 +42,7 @@ export default function CallsTable({
 
   if (error) {
     return (
-      <div className="bg-white rounded-lg shadow-sm border border-red-200 overflow-hidden">
+      <div className="bg-white rounded-xl shadow-lg border border-red-200 overflow-hidden">
         <div className="flex items-center justify-center py-16">
           <div className="text-center max-w-md">
             <div className="text-red-600 mb-4">
@@ -65,7 +66,7 @@ export default function CallsTable({
 
   if (calls.length === 0) {
     return (
-      <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
+      <div className="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
         <div className="flex items-center justify-center py-16">
           <div className="text-center">
             <div className="text-slate-400 mb-4">
@@ -81,35 +82,43 @@ export default function CallsTable({
     );
   }
 
+  const getBorderColor = (status: CallSuccessful | null) => {
+    if (status === CallSuccessful.success) return 'border-l-emerald-500';
+    if (status === CallSuccessful.failure) return 'border-l-rose-500';
+    return 'border-l-slate-300';
+  };
+
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
+    <div className="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-slate-200">
           <thead className="bg-slate-50/80 backdrop-blur-sm">
             <tr>
-              <th className="px-6 py-3.5 text-left text-xs font-bold text-slate-900 uppercase tracking-wider">
+              <th className="px-6 py-3.5 text-left text-xs font-semibold text-slate-700 uppercase tracking-wide">
                 Call Start Time
               </th>
-              <th className="px-6 py-3.5 text-left text-xs font-bold text-slate-900 uppercase tracking-wider">
+              <th className="px-6 py-3.5 text-left text-xs font-semibold text-slate-700 uppercase tracking-wide">
                 Agent Name
               </th>
-              <th className="px-6 py-3.5 text-left text-xs font-bold text-slate-900 uppercase tracking-wider">
+              <th className="px-6 py-3.5 text-left text-xs font-semibold text-slate-700 uppercase tracking-wide">
                 Duration
               </th>
-              <th className="px-6 py-3.5 text-left text-xs font-bold text-slate-900 uppercase tracking-wider">
+              <th className="px-6 py-3.5 text-left text-xs font-semibold text-slate-700 uppercase tracking-wide">
                 Messages
               </th>
-              <th className="px-6 py-3.5 text-left text-xs font-bold text-slate-900 uppercase tracking-wider">
+              <th className="px-6 py-3.5 text-left text-xs font-semibold text-slate-700 uppercase tracking-wide">
                 Status
               </th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-slate-200">
-            {calls.map((call) => (
+            {calls.map((call, index) => (
               <tr
                 key={call.id}
                 onClick={() => onRowClick(call.id)}
-                className="hover:bg-indigo-50/50 cursor-pointer transition-all duration-200 hover:shadow-sm active:bg-indigo-100/50"
+                className={`relative border-l-4 ${getBorderColor(call.callSuccessful)} ${
+                  index % 2 === 0 ? 'bg-white' : 'bg-slate-50/30'
+                } hover:bg-indigo-50/50 cursor-pointer transition-all duration-200 active:bg-indigo-100/50`}
               >
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">
                   {formatDateTime(call.startTime)}

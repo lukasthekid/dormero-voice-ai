@@ -93,9 +93,9 @@ export class CallService {
       }
     }
 
-    // Status filtering
-    if (filters.status) {
-      where.status = filters.status;
+    // Call successful filtering
+    if (filters.callSuccessful) {
+      where.callSuccessful = filters.callSuccessful;
     }
 
     // Agent ID filtering

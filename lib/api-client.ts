@@ -140,8 +140,8 @@ class ApiClient {
     if (filters.untilDate) {
       params.untilDate = filters.untilDate;
     }
-    if (filters.status) {
-      params.state = filters.status; // API uses 'state' param
+    if (filters.callSuccessful) {
+      params.callSuccessful = filters.callSuccessful;
     }
     if (filters.agentId) {
       params.agentId = filters.agentId;
