@@ -5,6 +5,14 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        - DATABASE_URL=${DATABASE_URL}
+        - PINECONE_API_KEY=${PINECONE_API_KEY}
+        - PINECONE_HOST=${PINECONE_HOST}
+        - ELEVENLABS_API_KEY=${ELEVENLABS_API_KEY}
+        - ELEVENLABS_CONVAI_WEBHOOK_SECRET=${ELEVENLABS_CONVAI_WEBHOOK_SECRET}
+        - LOG_LEVEL=${LOG_LEVEL:-info}
+        - NODE_ENV=${NODE_ENV:-production}
     container_name: dormero-voice-ai
     restart: unless-stopped
     ports:
