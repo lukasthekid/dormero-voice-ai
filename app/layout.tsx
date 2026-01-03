@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Dormero Voice AI - Control Center",
-  description: "AI call agent platform with call history analysis and knowledge base management",
+  title: "Dormero Viktoria - AI Voice Assistant",
+  description: "The Dormero Viktoria Project - AI Voice Assistant for Hotel Information",
 };
 
 export default function RootLayout({
