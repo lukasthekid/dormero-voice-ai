@@ -1,7 +1,15 @@
 version: '3.8'
 services:
   app:
-    build: .
+    build:
+      context: .
+      args:
+        - DATABASE_URL=${DATABASE_URL}
+        - PINECONE_API_KEY=${PINECONE_API_KEY}
+        - PINECONE_HOST=${PINECONE_HOST}
+        - ELEVENLABS_API_KEY=${ELEVENLABS_API_KEY}
+        - ELEVENLABS_CONVAI_WEBHOOK_SECRET=${ELEVENLABS_CONVAI_WEBHOOK_SECRET}
+        - LOG_LEVEL=${LOG_LEVEL}
     ports:
       - "3000:3000"
     env_file:

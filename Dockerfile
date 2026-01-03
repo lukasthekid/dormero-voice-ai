@@ -16,6 +16,22 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
+# Accept build arguments for environment variables
+ARG DATABASE_URL
+ARG PINECONE_API_KEY
+ARG PINECONE_HOST
+ARG ELEVENLABS_API_KEY
+ARG ELEVENLABS_CONVAI_WEBHOOK_SECRET
+ARG LOG_LEVEL
+
+# Set environment variables for build stage
+ENV DATABASE_URL=$DATABASE_URL
+ENV PINECONE_API_KEY=$PINECONE_API_KEY
+ENV PINECONE_HOST=$PINECONE_HOST
+ENV ELEVENLABS_API_KEY=$ELEVENLABS_API_KEY
+ENV ELEVENLABS_CONVAI_WEBHOOK_SECRET=$ELEVENLABS_CONVAI_WEBHOOK_SECRET
+ENV LOG_LEVEL=$LOG_LEVEL
+
 # Generate Prisma Client
 RUN npx prisma generate
 
@@ -31,6 +47,22 @@ ENV NODE_ENV=production
 RUN apk add --no-cache openssl
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
+
+# Accept build arguments for runtime environment variables
+ARG DATABASE_URL
+ARG PINECONE_API_KEY
+ARG PINECONE_HOST
+ARG ELEVENLABS_API_KEY
+ARG ELEVENLABS_CONVAI_WEBHOOK_SECRET
+ARG LOG_LEVEL
+
+# Set environment variables for runtime (these can be overridden by docker-compose)
+ENV DATABASE_URL=$DATABASE_URL
+ENV PINECONE_API_KEY=$PINECONE_API_KEY
+ENV PINECONE_HOST=$PINECONE_HOST
+ENV ELEVENLABS_API_KEY=$ELEVENLABS_API_KEY
+ENV ELEVENLABS_CONVAI_WEBHOOK_SECRET=$ELEVENLABS_CONVAI_WEBHOOK_SECRET
+ENV LOG_LEVEL=$LOG_LEVEL
 
 # Copy necessary files
 COPY --from=builder /app/public ./public
