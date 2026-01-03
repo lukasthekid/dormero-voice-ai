@@ -1,82 +1,57 @@
-# Use Node.js 24 as base image
-FROM node:24-alpine AS base
+# Build stage
+FROM node:24-alpine AS builder
 
-# Install dependencies only when needed
-FROM base AS deps
-RUN apk add --no-cache libc6-compat openssl
 WORKDIR /app
 
 # Copy package files
-COPY package.json package-lock.json* ./
+COPY package*.json ./
+
+# Install dependencies
 RUN npm ci
 
-# Rebuild the source code only when needed
-FROM base AS builder
-WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
-COPY . .
-
-# Accept build arguments for environment variables
-ARG DATABASE_URL
-ARG PINECONE_API_KEY
-ARG PINECONE_HOST
-ARG ELEVENLABS_API_KEY
-ARG ELEVENLABS_CONVAI_WEBHOOK_SECRET
-ARG LOG_LEVEL
-
-# Set environment variables for build stage
-ENV DATABASE_URL=$DATABASE_URL
-ENV PINECONE_API_KEY=$PINECONE_API_KEY
-ENV PINECONE_HOST=$PINECONE_HOST
-ENV ELEVENLABS_API_KEY=$ELEVENLABS_API_KEY
-ENV ELEVENLABS_CONVAI_WEBHOOK_SECRET=$ELEVENLABS_CONVAI_WEBHOOK_SECRET
-ENV LOG_LEVEL=$LOG_LEVEL
-
-# Generate Prisma Client
+# Copy prisma schema and generate client
+COPY prisma ./prisma/
+COPY prisma.config.ts ./
 RUN npx prisma generate
 
-# Build Next.js application
+# Copy source code
+COPY . .
+
+# Build the Next.js application
 RUN npm run build
 
-# Production image, copy all the files and run next
-FROM base AS runner
+# Production stage
+FROM node:20-alpine AS runner
+
 WORKDIR /app
 
+# Set environment to production
 ENV NODE_ENV=production
 
-RUN apk add --no-cache openssl
+# Create a non-root user
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-# Accept build arguments for runtime environment variables
-ARG DATABASE_URL
-ARG PINECONE_API_KEY
-ARG PINECONE_HOST
-ARG ELEVENLABS_API_KEY
-ARG ELEVENLABS_CONVAI_WEBHOOK_SECRET
-ARG LOG_LEVEL
-
-# Set environment variables for runtime (these can be overridden by docker-compose)
-ENV DATABASE_URL=$DATABASE_URL
-ENV PINECONE_API_KEY=$PINECONE_API_KEY
-ENV PINECONE_HOST=$PINECONE_HOST
-ENV ELEVENLABS_API_KEY=$ELEVENLABS_API_KEY
-ENV ELEVENLABS_CONVAI_WEBHOOK_SECRET=$ELEVENLABS_CONVAI_WEBHOOK_SECRET
-ENV LOG_LEVEL=$LOG_LEVEL
-
-# Copy necessary files
+# Copy necessary files from builder
+COPY --from=builder /app/package*.json ./
+COPY --from=builder /app/next.config.ts ./
+COPY --from=builder /app/prisma ./prisma/
+COPY --from=builder /app/prisma.config.ts ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next ./.next
+COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/public ./public
-COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static ./.next/static
-COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/generated ./generated
 
+# Switch to non-root user
 USER nextjs
 
+# Expose the port Next.js runs on
 EXPOSE 3000
 
+# Set environment variable for Next.js
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-# Run migrations and start the application
-CMD npx prisma migrate dev && node server.js
+# Start the application
+CMD ["npm", "start"]
+
