@@ -65,27 +65,6 @@ export class FeedbackService {
   }
 
   /**
-   * Get all feedback for a specific call
-   */
-  static async getFeedbackByCallId(callId: string): Promise<Feedback[]> {
-    log.debug('Fetching feedback by call ID', { callId });
-
-    const feedback = await prisma.feedback.findMany({
-      where: { callId },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
-
-    log.debug('Feedback fetched successfully', {
-      callId,
-      count: feedback.length,
-    });
-
-    return feedback;
-  }
-
-  /**
    * Create feedback for a call
    * Uses transaction to ensure call exists and feedback is created atomically
    */
@@ -144,81 +123,6 @@ export class FeedbackService {
   }
 
   /**
-   * Create feedback within a transaction
-   * Use this when you need to create feedback as part of a larger transaction
-   */
-  static async createFeedbackInTransaction(
-    tx: Prisma.TransactionClient,
-    callId: string,
-    input: CreateFeedbackInput
-  ): Promise<Feedback> {
-    log.debug('Creating feedback in transaction', { callId, rating: input.rating });
-
-    // Validate input
-    const validation = this.validateFeedbackInput(input);
-    if (!validation.valid) {
-      throw new Error(validation.error);
-    }
-
-    // Check if call exists (should be verified in parent transaction, but double-check for safety)
-    const callExists = await tx.call.findUnique({
-      where: { id: callId },
-      select: { id: true },
-    });
-
-    if (!callExists) {
-      log.warn('Call not found for feedback in transaction', { callId });
-      throw new Error('Call not found');
-    }
-
-    // Create feedback
-    const feedback = await tx.feedback.create({
-      data: {
-        callId,
-        rating: input.rating,
-        comment: input.comment || null,
-      },
-    });
-
-    log.debug('Feedback created successfully in transaction', {
-      feedbackId: feedback.id,
-      callId,
-    });
-
-    return feedback;
-  }
-
-  /**
-   * Update feedback by ID
-   */
-  static async updateFeedback(
-    id: string,
-    updateData: FeedbackUpdateInput
-  ): Promise<Feedback> {
-    log.debug('Updating feedback', { feedbackId: id });
-
-    // If rating is being updated, validate it
-    if (updateData.rating !== undefined) {
-      const rating = typeof updateData.rating === 'number' 
-        ? updateData.rating 
-        : Number(updateData.rating);
-      
-      if (isNaN(rating) || rating < FEEDBACK_RATING.MIN || rating > FEEDBACK_RATING.MAX) {
-        throw new Error(`Rating must be between ${FEEDBACK_RATING.MIN} and ${FEEDBACK_RATING.MAX}`);
-      }
-    }
-
-    const feedback = await prisma.feedback.update({
-      where: { id },
-      data: updateData,
-    });
-
-    log.info('Feedback updated successfully', { feedbackId: id });
-
-    return feedback;
-  }
-
-  /**
    * Delete feedback by ID
    */
   static async deleteFeedback(id: string): Promise<void> {
@@ -244,52 +148,6 @@ export class FeedbackService {
       feedbackId: id,
       callId: feedback.callId,
     });
-  }
-
-  /**
-   * Get feedback statistics for a call
-   */
-  static async getFeedbackStats(callId: string): Promise<{
-    count: number;
-    averageRating: number | null;
-    ratings: Record<number, number>;
-  }> {
-    log.debug('Calculating feedback stats', { callId });
-
-    const feedback = await prisma.feedback.findMany({
-      where: { callId },
-      select: { rating: true },
-    });
-
-    if (feedback.length === 0) {
-      return {
-        count: 0,
-        averageRating: null,
-        ratings: {},
-      };
-    }
-
-    const ratings: Record<number, number> = {};
-    let sum = 0;
-
-    feedback.forEach((f) => {
-      ratings[f.rating] = (ratings[f.rating] || 0) + 1;
-      sum += f.rating;
-    });
-
-    const averageRating = sum / feedback.length;
-
-    log.debug('Feedback stats calculated', {
-      callId,
-      count: feedback.length,
-      averageRating,
-    });
-
-    return {
-      count: feedback.length,
-      averageRating: Math.round(averageRating * 100) / 100, // Round to 2 decimal places
-      ratings,
-    };
   }
 }
 

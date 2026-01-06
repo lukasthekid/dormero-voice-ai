@@ -321,52 +321,5 @@ export class CallService {
 
     return call;
   }
-
-  /**
-   * Update an existing call
-   */
-  static async updateCall(
-    id: string,
-    updateData: Prisma.CallUpdateInput
-  ): Promise<CallListItem> {
-    log.debug('Updating call', { callId: id });
-
-    const call = await prisma.call.update({
-      where: { id },
-      data: updateData,
-      select: {
-        id: true,
-        conversationId: true,
-        agentId: true,
-        agentName: true,
-        startTime: true,
-        acceptedTime: true,
-        endTime: true,
-        callDurationSecs: true,
-        callSummaryTitle: true,
-        callSuccessful: true,
-        messages: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-    });
-
-    log.info('Call updated successfully', { callId: id });
-
-    return call;
-  }
-
-  /**
-   * Delete a call by ID
-   */
-  static async deleteCall(id: string): Promise<void> {
-    log.debug('Deleting call', { callId: id });
-
-    await prisma.call.delete({
-      where: { id },
-    });
-
-    log.info('Call deleted successfully', { callId: id });
-  }
 }
 
