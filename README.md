@@ -9,11 +9,11 @@
 
 ## 🎬 Demo
 
-![Dormero Victoria](public/demo.mp4)
+[![Dormero Victoria](https://img.youtube.com/vi/XqAUtFwe_AY/0.jpg)](https://www.youtube.com/watch?v=XqAUtFwe_AY)
 
 *The Control Center in action — monitoring call logs, inspecting transcripts, tool calls, and evaluating agent performance.*
 
-**[▶ Watch the demo](public/demo.mp4)** · **[🌐 Try the live app](https://dormero-victoria.project100x.run.place/)**
+**[▶ Watch the demo](https://www.youtube.com/watch?v=XqAUtFwe_AY)** · **[🌐 Try the live app](https://dormero-victoria.project100x.run.place/)**
 
 > **Note:** The deployed agent currently has knowledge of **Vienna** and **Stuttgart** Dormero hotels only.
 
