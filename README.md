@@ -1,284 +1,201 @@
+# Dormero Victoria
 
-  
+> **AI Voice Assistant & Monitoring Platform** for ElevenLabs Conversational AI
 
-# Dormero Voice AI
+[![Live Demo](https://img.shields.io/badge/Live_Demo-View_Now-6366f1?style=for-the-badge)](https://dormero-victoria.project100x.run.place/)
+[![Docker](https://img.shields.io/badge/Docker-Ready-2496ed?style=for-the-badge&logo=docker)](./Dockerfile)
 
-  
+---
 
-A full-stack Next.js application for monitoring an AI Voice Agent.
+## 🎬 Demo
 
-  
+![Dormero Victoria](public/demo.mp4)
 
-find the deployed version here: [https://dormero-victoria.project100x.run.place/](https://dormero-victoria.project100x.run.place/)
+*The Control Center in action — monitoring call logs, inspecting transcripts, tool calls, and evaluating agent performance.*
 
-  
+**[▶ Watch the demo](public/demo.mp4)** · **[🌐 Try the live app](https://dormero-victoria.project100x.run.place/)**
 
-  
+> **Note:** The deployed agent currently has knowledge of **Vienna** and **Stuttgart** Dormero hotels only.
+
+---
+
+## Overview
+
+**Dormero Victoria** is a full-stack monitoring platform for an **ElevenLabs Voice AI** agent. It provides:
+
+1. **Knowledge Base Tool Endpoint** — A semantic search API that ElevenLabs calls during conversations to retrieve up-to-date information about Dormero hotels. Content is scraped from [dormero.de](https://www.dormero.de/) and stored in a vector database.
+
+2. **Control Center** — A web dashboard to monitor, analyze, and evaluate every voice call. Track success rates, inspect transcripts, review tool invocations, detect hallucinations, and rate call quality.
+
+---
+
+## Architecture
+
+```
+┌─────────────────────┐     Webhook + Tool Calls      ┌──────────────────────┐
+│   ElevenLabs        │ ◄──────────────────────────► │   Dormero Victoria    │
+│   Voice Agent       │                              │   (This Project)      │
+└─────────────────────┘                              └──────────┬───────────┘
+                                                               │
+                    ┌──────────────────────────────────────────┼──────────────────────────────────────────┐
+                    │                                          │                                          │
+                    ▼                                          ▼                                          ▼
+           ┌────────────────┐                        ┌────────────────┐                        ┌────────────────┐
+           │   Pinecone     │                        │   Prisma       │                        │   Next.js      │
+           │   Vector DB    │                        │   PostgreSQL   │                        │   Frontend     │
+           │                │                        │                │                        │   + API        │
+           │ llama-text-    │                        │ Call logs      │                        │ Control Center │
+           │ embed-v2-index │                        │ Feedback       │                        │ Voice widget   │
+           └────────────────┘                        └────────────────┘                        └────────────────┘
+```
+
+| Service | Role |
+|--------|------|
+| **ElevenLabs** | Voice agent that handles phone calls and invokes this project's tools |
+| **Pinecone** | Vector storage for the knowledge base (embedding model: `llama-text-embed-v2-index`) |
+| **Prisma + PostgreSQL** | Backend for the monitoring platform — call logs, feedback, analytics |
+| **Next.js** | API routes, Control Center UI, and embedded voice widget |
+
+---
+
+## Control Center Features
+
+| Feature | Description |
+|---------|-------------|
+| **Call History** | Browse all previous voice calls with pagination and date filters |
+| **Success Evaluation** | Calls are pre-evaluated against a success criteria (`success` / `failure` / `unknown`) |
+| **Hallucination Detection** | Inspect whether the model stayed grounded in the knowledge base or hallucinated |
+| **Transcript Inspector** | Full conversation transcript with message and tool-call views |
+| **Response & Cost Metrics** | Call duration, LLM costs, call charges, and turn counts |
+| **Tool Call Tracking** | Filter and inspect every knowledge base tool invocation during a call |
+| **Individual Ratings** | Rate calls with 1–5 stars and optional comments |
+| **KPIs** | Aggregate metrics: total calls, average duration, average rating |
+
+---
+
+## Knowledge Base
+
+- **Source:** [dormero.de](https://www.dormero.de/) — scraped and chunked for semantic search
+- **Ingestion:** `npm run ingest:hotel` — crawls Vienna and Stuttgart hotel pages, embeds content, and upserts to Pinecone
+- **Endpoint:** `POST /api/knowledge` — consumed by ElevenLabs as a custom tool during conversations
+
+---
 
 ## Prerequisites
 
-  
+| Account | Purpose |
+|---------|---------|
+| **ElevenLabs** | Voice agent, webhook events, and tool invocation |
+| **Pinecone** | Vector storage for the knowledge base |
+| **Prisma** | Database (PostgreSQL) for the monitoring platform |
 
-  
+---
 
-This project requires:
+## Quick Start
 
-  
-
--  **Pinecone API key** - For vector database operations
-
-  
-
--  **Prisma API key** (Database connection) - For database access
-
-  
-
--  **ngrok** - To expose local endpoints for ElevenLabs webhooks and custom tools
-
-  
-
-  
-
-## Setup
-
-  
-
-  
-
-1. Install dependencies:
-
-  
+### 1. Install dependencies
 
 ```bash
-
-  
-
-npm  install
-
-  
-
+npm install
 ```
 
-  
+### 2. Environment variables
 
-  
-
-2. Set up environment variables (create a `.env` file):
-
-  
+Create a `.env` file:
 
 ```bash
+# Database (Prisma)
+DATABASE_URL="postgresql://user:password@host:5432/dbname"
 
-  
-
+# Pinecone (Vector storage)
 PINECONE_API_KEY=your_pinecone_api_key
-
-  
-
 PINECONE_HOST=your_pinecone_host
 
-  
-
-DATABASE_URL=your_database_connection_string
-
-  
-
+# ElevenLabs
 ELEVENLABS_API_KEY=your_elevenlabs_api_key
-
-  
-
 ELEVENLABS_CONVAI_WEBHOOK_SECRET=your_webhook_secret
-
-  
-
 ```
 
-  
-
-  
-
-3. Run database migrations:
-
-  
+### 3. Database setup
 
 ```bash
-
-  
-
-npx  prisma  migrate  dev
-
-  
-
+npx prisma migrate dev
 ```
 
-  
-
-  
-
-4. Start ngrok to expose your local server:
-
-  
+### 4. Ingest hotel data (optional)
 
 ```bash
-
-  
-
-ngrok  http  3000
-
-  
-
+npm run ingest:hotel
 ```
 
-  
+### 5. Configure ElevenLabs
 
-  
+In your ElevenLabs agent settings:
 
-5. Configure ElevenLabs:
+- **Webhook URL:** `https://your-domain.com/api/webhooks/elevenlabs`
+- **Knowledge tool endpoint:** `https://your-domain.com/api/knowledge`
 
-  
+For local development, use [ngrok](https://ngrok.com/) to expose your server and point these URLs to your ngrok URL.
 
-- Set the webhook URL in your ElevenLabs agent to: `https://your-ngrok-url.ngrok.io/api/webhooks/elevenlabs`
-
-  
-
-- Add the knowledge endpoint as a custom tool: `https://your-ngrok-url.ngrok.io/api/knowledge`
-
-  
-
-  
-
-6. Run the development server:
-
-  
+### 6. Run the app
 
 ```bash
-
-  
-
-npm  run  dev
-
-  
-
+npm run dev
 ```
 
-  
+Open [http://localhost:3000](http://localhost:3000).
 
-  
+---
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Docker
 
-  
+The project is **Dockerized** for containerized deployment. Build and run with:
 
-## Architectural Overview
+```bash
+docker build -t dormero-victoria .
+docker run -p 3000:3000 --env-file .env dormero-victoria
+```
 
-  
+---
 
-The codebase is organized into clearly defined layers, each with a focused responsibility:
+## Project Structure
 
-  
+```
+├── app/
+│   ├── api/
+│   │   ├── knowledge/          # Knowledge base tool endpoint (ElevenLabs)
+│   │   ├── webhooks/elevenlabs/ # Webhook for call events
+│   │   ├── calls/              # Call listing API
+│   │   └── feedback/           # Rating API
+│   ├── control-center/         # Monitoring dashboard
+│   └── page.tsx                # Landing + voice widget
+├── components/
+│   ├── control-center/         # KPIs, filters, calls table
+│   └── call-detail/            # Transcript, metadata, ratings
+├── lib/
+│   ├── services/               # CallService, KnowledgeService, KPIService
+│   └── pinecone.ts             # Vector DB client
+├── scripts/
+│   └── ingest-hotel-data.ts    # Scraper + Pinecone ingestion
+└── prisma/
+    └── schema.prisma           # Call, Feedback, AgentMetrics models
+```
 
--  **API Routes Layer (`app/api/`)**
+---
 
-Manages HTTP requests and responses, input validation, and request routing.
+## Tech Stack
 
--  **Service Layer (`lib/services/`)**
+- **Next.js 16** — App Router, API routes, React 19
+- **Prisma** — ORM, PostgreSQL
+- **Pinecone** — Vector search (`llama-text-embed-v2-index`)
+- **ElevenLabs** — Conversational AI SDK, webhooks
+- **Cheerio** — Web scraping for knowledge ingestion
+- **LangChain** — Text splitting for RAG
+- **Tailwind CSS** — Styling
+- **Recharts** — KPI visualizations
 
-Encapsulates core business logic, including `CallService`, `KnowledgeService`, and `KPIService`.
+---
 
--  **Data Access Layer (`lib/prisma.ts`)**
+## License
 
-Handles database connectivity and Prisma client lifecycle management.
-
--  **Presentation Layer (`components/`)**
-
-Contains React components structured by feature and responsibility.
-
--  **Types Layer (`types/`)**
-
-Provides shared TypeScript type definitions used across the application.
-
-  
-
-This layered approach improves maintainability, testability, and long-term scalability.
-
-  
-
-## API Client Abstraction
-
-  
-
-The `ApiClient` class (`lib/api-client.ts`) serves as a unified interface for backend communication and provides:
-
-  
-
-- Type-safe methods for all API endpoints
-
-- Centralized and consistent error handling via a custom `ApiError` class
-
-- URL construction with query parameter support
-
-- Response parsing and validation
-
-  
-
-As a result, frontend components remain decoupled from low-level networking details and can interact with the backend through simple method calls such as `api.getCalls()`.
-
-  
-
-## Centralized Constants Management
-
-  
-
-Application-wide configuration values are centralized in `lib/constants.ts`, including:
-
-  
-
-- Pagination defaults and limits
-
-- Knowledge base query constraints
-
-- Feedback rating boundaries
-
-  
-
-This allows business rules and limits to be updated in a single location, reducing duplication and risk of inconsistencies.
-
-  
-
-## Why This Architecture Scales
-
-  
-
-1.  **Feature Expansion** – New functionality follows a predictable pattern: service → API route → UI component
-
-2.  **Testability** – Business logic can be unit tested independently, while API routes support integration testing
-
-3.  **Performance** – Optimized database indexing, connection pooling, and aggregation strategies support growth
-
-4.  **Team Collaboration** – Clear separation of concerns minimizes merge conflicts and onboarding time
-
-5.  **Maintainability** – Changes are localized to specific layers, reducing unintended side effects
-
-6.  **Type Safety** – TypeScript enforces compile-time guarantees and prevents many runtime errors
-
-
-![Application Flow](https://i.ibb.co/qwqmF0G/api-flows-drawio.png)
-  
-
-## Third-Party Services
-
-  
-
-### Pinecone
-
-  
-
-Pinecone is used as the vector database for the custom RAG system. It provides a fully managed, production-ready solution with low-latency similarity search, making it ideal for real-time use cases such as chat or voice assistants. Its official TypeScript SDK integrates seamlessly with Next.js server environments, while built-in scalability, metadata filtering, and namespace support make it well suited for secure, multi-tenant applications.
-
-  
-
-### Prisma + PostgreSQL
-
-  
-
-Prisma combined with PostgreSQL forms a robust and type-safe data layer. Prisma’s generated TypeScript types improve developer experience and reduce runtime errors, while PostgreSQL offers a proven relational database with strong performance, transactional guarantees, and data integrity. Together, they integrate cleanly with Next.js APIs and support safe schema evolution through migrations as the application grows.
+See [LICENSE](./LICENSE) for details.
